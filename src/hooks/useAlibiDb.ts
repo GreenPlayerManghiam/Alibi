@@ -85,4 +85,3 @@ export function useAlibiDb() {
 
   return { profile, spentToday, totalSpent, pendingRegret, regretContext, loading, rateTransaction, saveTransaction, updateProfile };
 }
-}
