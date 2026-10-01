@@ -1,3 +1,4 @@
+// src/hooks/useAlibiDb.ts
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
@@ -22,7 +23,7 @@ export function useAlibiDb() {
       let { data: prof } = await supabase.from('profiles').select('*').eq('user_id', uid).single();
       if (!prof) {
         const { data: newProf } = await supabase.from('profiles')
-          .insert([{ user_id: uid, monthly_allowance: 10000, fixed_mess_fees: 3000, remaining_days: 30 }])
+          .insert([{ user_id: uid, monthly_allowance: 15000, fixed_mess_fees: 3000, remaining_days: 20 }])
           .select().single();
         prof = newProf;
       }
@@ -65,5 +66,23 @@ export function useAlibiDb() {
     }
   };
 
-  return { profile, spentToday, totalSpent, pendingRegret, regretContext, loading, rateTransaction, saveTransaction };
+  // NEW: Update profile function so custom allowance inputs save to Supabase
+  const updateProfile = async (newProfile: { monthlyAllowance: number; fixedFees: number; remainingDays: number }) => {
+    if (!profile) return;
+    await supabase.from('profiles').update({
+      monthly_allowance: newProfile.monthlyAllowance,
+      fixed_mess_fees: newProfile.fixedFees,
+      remaining_days: newProfile.remainingDays
+    }).eq('id', profile.id);
+
+    setProfile({
+      ...profile,
+      monthlyAllowance: newProfile.monthlyAllowance,
+      fixedFees: newProfile.fixedFees,
+      remainingDays: newProfile.remainingDays
+    });
+  };
+
+  return { profile, spentToday, totalSpent, pendingRegret, regretContext, loading, rateTransaction, saveTransaction, updateProfile };
+}
 }
