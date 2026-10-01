@@ -1,6 +1,6 @@
 // src/App.tsx
 import { useMemo, useRef, useState } from "react";
-import { Activity, Flame, ShieldCheck, Send, Loader2, Sparkles, ReceiptText, MessageCircle, Copy, CheckCircle2, HandCoins, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
+import { Activity, Send, Loader2, Sparkles, ReceiptText, MessageCircle, Copy, CheckCircle2, HandCoins, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
 import { processAlibiInput } from "./processAlibiInput";
 import { useAlibiDb } from "./hooks/useAlibiDb";
 import type { AlibiResult, AdviceResult, IouResult } from "./processAlibiInput";
