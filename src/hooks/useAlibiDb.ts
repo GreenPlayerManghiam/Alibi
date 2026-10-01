@@ -3,7 +3,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export interface ProfileState {
-  id: string; monthlyAllowance: number; fixedFees: number; remainingDays: number;
+  id: string; 
+  monthlyAllowance: number; 
+  fixedFees: number; 
+  remainingDays: number;
 }
 
 export function useAlibiDb() {
@@ -39,7 +42,8 @@ export function useAlibiDb() {
           if (tx.created_at.startsWith(today)) todayTotal += Number(tx.amount);
         }
       });
-      setTotalSpent(total); setSpentToday(todayTotal);
+      setTotalSpent(total); 
+      setSpentToday(todayTotal);
 
       const { data: unrated } = await supabase.from('transactions').select('*').eq('profile_id', prof.id).eq('type', 'expense').is('regret_score', null).order('created_at', { ascending: false }).limit(1);
       if (unrated?.length) setPendingRegret(unrated[0]);
@@ -62,11 +66,11 @@ export function useAlibiDb() {
     if (!profile) return;
     await supabase.from('transactions').insert([{ profile_id: profile.id, amount, category, merchant, type, iou_borrower: iouBorrower }]);
     if (type !== 'income') {
-      setTotalSpent(prev => prev + amount); setSpentToday(prev => prev + amount);
+      setTotalSpent(prev => prev + amount); 
+      setSpentToday(prev => prev + amount);
     }
   };
 
-  // NEW: Update profile function so custom allowance inputs save to Supabase
   const updateProfile = async (newProfile: { monthlyAllowance: number; fixedFees: number; remainingDays: number }) => {
     if (!profile) return;
     await supabase.from('profiles').update({
