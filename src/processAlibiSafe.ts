@@ -78,7 +78,9 @@ function mockFor(rawInput: string, b: BudgetState): AlibiResult {
         peerPressureDetected: peerPressure,
         peerPressureNote: peerPressure ? "Group plan detected — easy to overspend when everyone else is paying too." : "",
         cheaperAlternative,
-        aiCoachMessage: risky ? "This eats a big chunk of your safe budget — think twice before saying yes." : "Should fit fine within today's budget. Go for it.",
+        futureTrade: `₹${amount} tonight = your bus fare home for Diwali`,
+        friendGroupTag: "Weekend Hangouts",
+        aiCoachMessage: b.roastMode === "absolute_menace" ? "Absolute menace check: You are completely broke and you want to spend this? Absolutely not." : "This eats a big chunk of your safe budget — think twice before saying yes.",
         socialScripts: verdict === "go_ahead" ? emptyScripts : sayNoFor(item, cheaperAlternative),
       },
     };

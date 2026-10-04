@@ -13,8 +13,6 @@ export function useAlibiDb() {
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [spentToday, setSpentToday] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
-  
-  // NEW: State to track spending by category for the Envelopes UI
   const [categoryTotals, setCategoryTotals] = useState<Record<string, number>>({});
   
   const [pendingRegret, setPendingRegret] = useState<any | null>(null);
@@ -23,7 +21,6 @@ export function useAlibiDb() {
 
   useEffect(() => {
     async function init() {
-      // NEW: Wrap in try/finally to prevent infinite loading spinners
       try {
         const { data: authData, error: authErr } = await supabase.auth.signInAnonymously();
         const uid = authData?.user?.id;
@@ -33,11 +30,9 @@ export function useAlibiDb() {
           return;
         }
 
-        // FIXED: Changed .single() to .maybeSingle() to prevent the 406 crash
         let { data: prof } = await supabase.from('profiles').select('*').eq('user_id', uid).maybeSingle();
         
         if (!prof) {
-          // FIXED: Changed .single() to .maybeSingle() here as well
           const { data: newProf } = await supabase.from('profiles')
             .insert([{ user_id: uid, monthly_allowance: 15000, fixed_mess_fees: 3000, remaining_days: 20 }])
             .select().maybeSingle();
@@ -49,7 +44,6 @@ export function useAlibiDb() {
 
           const today = new Date().toISOString().split('T')[0];
           
-          // NEW: Added 'category' to the select query to build the envelope data
           const { data: allTxs } = await supabase.from('transactions').select('amount, created_at, type, category').eq('profile_id', prof.id);
           
           let total = 0, todayTotal = 0;
@@ -61,7 +55,6 @@ export function useAlibiDb() {
               total += amt;
               if (tx.created_at.startsWith(today)) todayTotal += amt;
               
-              // NEW: Tally up the categories
               if (tx.category) {
                 catTotals[tx.category] = (catTotals[tx.category] || 0) + amt;
               }
@@ -81,7 +74,6 @@ export function useAlibiDb() {
       } catch (err) {
         console.error("Database initialization failed:", err);
       } finally {
-        // NEW: This guarantees the loading screen turns off even on a network error
         setLoading(false);
       }
     }
@@ -94,37 +86,59 @@ export function useAlibiDb() {
     setPendingRegret(null);
   };
 
+  // OPTIMIZED: Optimistic UI Update Pattern for instant synchronization across all components
   const saveTransaction = async (amount: number, category: string, merchant: string, type: 'expense'|'income'|'iou', iouBorrower?: string) => {
     if (!profile) return;
-    await supabase.from('transactions').insert([{ profile_id: profile.id, amount, category, merchant, type, iou_borrower: iouBorrower }]);
+
+    // 1. INSTANT LOCAL STATE UPDATE (0ms latency)
+    // Updates total spent, today's spend, and category envelopes immediately in memory
     if (type !== 'income') {
       setTotalSpent(prev => prev + amount); 
       setSpentToday(prev => prev + amount);
-      
-      // NEW: Update category totals instantly for the UI
       setCategoryTotals(prev => ({ 
         ...prev, 
         [category]: (prev[category] || 0) + amount 
       }));
+    } else {
+      setProfile(prev => prev ? { ...prev, monthlyAllowance: prev.monthlyAllowance + amount } : null);
+    }
+
+    // 2. BACKGROUND DATABASE SYNC (Non-blocking network request to Supabase)
+    try {
+      const { error } = await supabase.from('transactions').insert([{ 
+        profile_id: profile.id, 
+        amount, 
+        category, 
+        merchant, 
+        type, 
+        iou_borrower: iouBorrower 
+      }]);
+      if (error) throw error;
+    } catch (err) {
+      console.error("Background sync failed:", err);
     }
   };
 
-  const updateProfile = async (newProfile: { monthlyAllowance: number; fixedFees: number; remainingDays: number }) => {
+  const updateProfile = async (newProfile: Partial<{ monthlyAllowance: number; fixedFees: number; remainingDays: number }>) => {
     if (!profile) return;
-    await supabase.from('profiles').update({
-      monthly_allowance: newProfile.monthlyAllowance,
-      fixed_mess_fees: newProfile.fixedFees,
-      remaining_days: newProfile.remainingDays
-    }).eq('id', profile.id);
+    
+    const updatedData = {
+      monthly_allowance: newProfile.monthlyAllowance ?? profile.monthlyAllowance,
+      fixed_mess_fees: newProfile.fixedFees ?? profile.fixedFees,
+      remaining_days: newProfile.remainingDays ?? profile.remainingDays
+    };
 
+    // Instant local state update
     setProfile({
       ...profile,
-      monthlyAllowance: newProfile.monthlyAllowance,
-      fixedFees: newProfile.fixedFees,
-      remainingDays: newProfile.remainingDays
+      monthlyAllowance: updatedData.monthly_allowance,
+      fixedFees: updatedData.fixed_mess_fees,
+      remainingDays: updatedData.remaining_days
     });
+
+    // Background cloud sync
+    await supabase.from('profiles').update(updatedData).eq('id', profile.id);
   };
 
-  // NEW: Export categoryTotals so App.tsx can use it
   return { profile, spentToday, totalSpent, categoryTotals, pendingRegret, regretContext, loading, rateTransaction, saveTransaction, updateProfile };
 }

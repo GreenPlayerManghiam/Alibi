@@ -6,6 +6,8 @@ export interface BudgetState {
   fixedFees: number;
   remainingDays: number;
   spentToday: number;
+  persona?: "hostel_kid" | "gentle_mentor" | "strict_accountant";
+  roastMode?: "gentle" | "savage" | "absolute_menace";
 }
 
 export type SocialScripts = { funny: string; honest: string; firm: string; counterPlan: string; };
@@ -27,7 +29,9 @@ export interface AdviceResult {
     peerPressureNote?: string; 
     aiCoachMessage: string; 
     socialScripts?: SocialScripts; 
-    cheaperAlternative?: string; 
+    cheaperAlternative?: string;
+    futureTrade?: string;
+    friendGroupTag?: string;
   };
 }
 
@@ -48,13 +52,41 @@ export async function processAlibiInput(
   if (!input) throw new Error("Empty input");
   if (!opts.apiKey) throw new Error("Missing Groq API Key in .env.local");
 
-  const dailySafe = Math.max((budgetState.monthlyAllowance - budgetState.fixedFees) / Math.max(budgetState.remainingDays, 1), 0);
-
-  const SYSTEM_PROMPT = `You are Alibi, an elite, street-smart financial manager and social-defense AI built specifically for university and college hostel students. 
+  // --- CLIENT-SIDE PSYCHOLOGICAL STATE MACHINE PARAMETERS ---
+  const discretionary = Math.max(budgetState.monthlyAllowance - budgetState.fixedFees, 0);
+  const dailySafe = Math.max(discretionary / Math.max(budgetState.remainingDays, 1), 0);
   
-  CURRENT FINANCIAL CONTEXT:
+  // 1. Velocity Tracking: Calculate burn velocity ratio compared to safe daily allowance
+  const burnVelocity = dailySafe > 0 ? (budgetState.spentToday / dailySafe).toFixed(2) : "1.00";
+
+  // 2. Social-Context Tagging: Detect if spend is social temptation or solo necessity
+  const isSocial = /cafe|café|movie|party|club|friends|squad|drinks|hangout|pizza/i.test(input);
+  const socialTag = isSocial ? "SOCIAL_TEMPTATION" : "SOLO_NECESSITY";
+
+  // 3. Aggression Multiplier & Persona Mapping
+  const personaStyle = 
+    budgetState.persona === "gentle_mentor" 
+      ? "You are a warm, supportive financial mentor who guides university students with empathy and gentle encouragement." 
+      : budgetState.persona === "strict_accountant"
+      ? "You are a strict, no-nonsense corporate auditor who treats every rupee with extreme corporate discipline."
+      : "You are Alibi, an elite, street-smart financial manager and social-defense AI built specifically for university and college hostel students. You use witty hostel slang, call out bad spending, and understand mess-life fatigue.";
+
+  const roastTone =
+    budgetState.roastMode === "absolute_menace"
+      ? "ROAST MODE: ABSOLUTE MENACE. Be brutally sarcastic, mercilessly roast terrible financial choices, and hold nothing back."
+      : budgetState.roastMode === "savage"
+      ? "ROAST MODE: SAVAGE. Call out bad choices directly with sharp wit."
+      : "ROAST MODE: GENTLE. Keep it light and friendly.";
+
+  const SYSTEM_PROMPT = `${personaStyle}
+  
+  ${roastTone}
+
+  DYNAMIC STATE MACHINE CONTEXT:
   - Daily Safe Budget: ₹${Math.round(dailySafe)}
   - Spent Today: ₹${budgetState.spentToday}
+  - Burn Velocity Ratio: ${burnVelocity}x of daily limit
+  - Context Tag: ${socialTag}
   - Days Left in Month: ${budgetState.remainingDays}
   - PAST STUDENT REGRETS: ${regretContext || "None recorded yet."}
 
@@ -63,11 +95,7 @@ export async function processAlibiInput(
   2. "advice": Pre-spend check / peer pressure dilemma ("Should I buy...", "Friends want to go to...").
   3. "iou_nudge": Paid for someone else and need to ask for money back.
 
-  COACHING RULES:
-  - Speak like a sharp, modern financial manager who actually understands student life.
-  - If giving advice, cross-reference PAST REGRETS. If they are about to repeat a past mistake, call them out directly!
-  - Generate killer WhatsApp "social defense scripts".
-  - OUTPUT PURE JSON ONLY. No markdown blocks, no backticks.
+  OUTPUT PURE JSON ONLY. No markdown blocks, no backticks.
 
   EXACT JSON SCHEMA TO RETURN:
   {
@@ -83,8 +111,10 @@ export async function processAlibiInput(
       "peerPressureDetected": boolean,
       "peerPressureNote": "string",
       "cheaperAlternative": "string",
+      "futureTrade": "string",
+      "friendGroupTag": "string",
       "iouBorrower": "string",
-      "aiCoachMessage": "1-2 punchy sentences.",
+      "aiCoachMessage": "1-2 punchy sentences matching your persona and roast mode.",
       "socialScripts": {
         "funny": "string",
         "honest": "string",
@@ -109,7 +139,7 @@ export async function processAlibiInput(
         { role: "user", content: `INPUT: "${input}"` }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.4
+      temperature: 0.5
     }),
   });
 
