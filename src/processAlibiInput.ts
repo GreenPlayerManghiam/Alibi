@@ -151,7 +151,16 @@ export async function processAlibiInput(
   const json = await res.json();
   
   try {
-    return JSON.parse(json.choices[0].message.content) as AlibiResult;
+    const parsed = JSON.parse(json.choices[0].message.content) as AlibiResult;
+    
+    // Safety check: if the AI accidentally returned a decimal like 0.8 instead of 80, fix it
+    if (parsed.mode === "advice" && parsed.data && typeof parsed.data.regretRiskScore === "number") {
+      if (parsed.data.regretRiskScore > 0 && parsed.data.regretRiskScore <= 1) {
+        parsed.data.regretRiskScore = Math.round(parsed.data.regretRiskScore * 100);
+      }
+    }
+    
+    return parsed;
   } catch (err) {
     throw new Error("AI returned corrupted JSON data.");
   }
