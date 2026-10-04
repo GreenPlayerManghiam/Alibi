@@ -1,16 +1,16 @@
 // src/SayNoScript.tsx
 import { useState } from "react";
 import { Check, Copy, MessageCircleOff } from "lucide-react";
-import type { SayNoScripts } from "./processAlibiInput";
+import type { SocialScripts } from "./processAlibiInput";
 
-const TONES: { key: keyof SayNoScripts; label: string }[] = [
+const TONES: { key: keyof SocialScripts; label: string }[] = [
   { key: "funny", label: "Funny" },
   { key: "honest", label: "Honest" },
   { key: "firm", label: "Firm" },
 ];
 
-export default function SayNoScript({ scripts }: { scripts: SayNoScripts }) {
-  const [tone, setTone] = useState<keyof SayNoScripts>("honest");
+export default function SayNoScript({ scripts }: { scripts: SocialScripts }) {
+  const [tone, setTone] = useState<keyof SocialScripts>("honest");
   const [copied, setCopied] = useState(false);
   const text = scripts[tone];
 

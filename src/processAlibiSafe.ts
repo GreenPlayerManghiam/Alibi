@@ -1,5 +1,5 @@
 // src/processAlibiSafe.ts
-import { processAlibiInput, type BudgetState, type AlibiResult, type SayNoScripts } from "./processAlibiInput";
+import { processAlibiInput, type BudgetState, type AlibiResult, type SocialScripts } from "./processAlibiInput";
 
 export type ResolveSource = "live" | "fallback";
 export interface SafeResult {
@@ -13,7 +13,8 @@ const API_KEY = (import.meta as any).env?.VITE_GROQ_API_KEY ?? "";
 
 export async function processAlibiSafe(
   rawInput: string,
-  budgetState: BudgetState
+  budgetState: BudgetState,
+  regretContext: string = ""
 ): Promise<SafeResult> {
   const t0 = performance.now();
 
@@ -21,7 +22,7 @@ export async function processAlibiSafe(
     return { result: mockFor(rawInput, budgetState), source: "fallback", ms: Math.round(performance.now() - t0) };
   }
 
-  const live = processAlibiInput(rawInput, budgetState, { apiKey: API_KEY });
+  const live = processAlibiInput(rawInput, budgetState, regretContext, { apiKey: API_KEY });
   const timeout = new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), TIMEOUT_MS));
 
   try {
@@ -35,7 +36,7 @@ export async function processAlibiSafe(
   }
 }
 
-function sayNoFor(item: string, cheaperAlternative: string): SayNoScripts {
+function sayNoFor(item: string, cheaperAlternative: string): SocialScripts {
   const plan = item.trim() || "that";
   const swap = cheaperAlternative
     ? ` ${cheaperAlternative.replace(/^suggest\s+/i, "how about ").replace(/\.$/, "")}?`
@@ -44,6 +45,7 @@ function sayNoFor(item: string, cheaperAlternative: string): SayNoScripts {
     funny: `Bro I am praying on my allowance rn 😭 count me out for "${plan}" this time, broke era`,
     honest: `Ngl trying to stay on budget this week, so I'll skip "${plan}" this time. Next one's on me though.`,
     firm: `Can't make it for "${plan}" today, sticking to my budget.${swap}`,
+    counterPlan: "Let's just hit the canteen instead.",
   };
 }
 
@@ -64,7 +66,7 @@ function mockFor(rawInput: string, b: BudgetState): AlibiResult {
     const verdict = risky ? "skip" : usedPct > 60 ? "think_twice" : "go_ahead";
     const item = rawInput.slice(0, 40);
     const cheaperAlternative = risky ? "Suggest a cheaper hangout spot or split the bill fewer ways." : "";
-    const emptyScripts: SayNoScripts = { funny: "", honest: "", firm: "" };
+    const emptyScripts: SocialScripts = { funny: "", honest: "", firm: "", counterPlan: "" };
     return {
       mode: "advice",
       data: {
@@ -77,7 +79,7 @@ function mockFor(rawInput: string, b: BudgetState): AlibiResult {
         peerPressureNote: peerPressure ? "Group plan detected — easy to overspend when everyone else is paying too." : "",
         cheaperAlternative,
         aiCoachMessage: risky ? "This eats a big chunk of your safe budget — think twice before saying yes." : "Should fit fine within today's budget. Go for it.",
-        sayNoScripts: verdict === "go_ahead" ? emptyScripts : sayNoFor(item, cheaperAlternative),
+        socialScripts: verdict === "go_ahead" ? emptyScripts : sayNoFor(item, cheaperAlternative),
       },
     };
   }

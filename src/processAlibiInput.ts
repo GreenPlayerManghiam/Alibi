@@ -17,7 +17,18 @@ export interface TransactionResult {
 
 export interface AdviceResult {
   mode: "advice";
-  data: { amount: number; category: Category; item: string; verdict: "go_ahead" | "think_twice" | "skip"; regretRiskScore: number; peerPressureDetected: boolean; aiCoachMessage: string; socialScripts?: SocialScripts; cheaperAlternative?: string; };
+  data: { 
+    amount: number; 
+    category: Category; 
+    item: string; 
+    verdict: "go_ahead" | "think_twice" | "skip"; 
+    regretRiskScore: number; 
+    peerPressureDetected: boolean; 
+    peerPressureNote?: string; 
+    aiCoachMessage: string; 
+    socialScripts?: SocialScripts; 
+    cheaperAlternative?: string; 
+  };
 }
 
 export interface IouResult {
@@ -39,7 +50,6 @@ export async function processAlibiInput(
 
   const dailySafe = Math.max((budgetState.monthlyAllowance - budgetState.fixedFees) / Math.max(budgetState.remainingDays, 1), 0);
 
-  // UPGRADED PERSONA: Sharp, witty student financial manager
   const SYSTEM_PROMPT = `You are Alibi, an elite, street-smart financial manager and social-defense AI built specifically for university and college hostel students. 
   
   CURRENT FINANCIAL CONTEXT:
@@ -54,9 +64,9 @@ export async function processAlibiInput(
   3. "iou_nudge": Paid for someone else and need to ask for money back.
 
   COACHING RULES:
-  - Speak like a sharp, modern financial manager who actually understands student life (mess food fatigue, canteen runs, peer pressure, end-of-month broke eras). Avoid robotic corporate banking talk.
+  - Speak like a sharp, modern financial manager who actually understands student life.
   - If giving advice, cross-reference PAST REGRETS. If they are about to repeat a past mistake, call them out directly!
-  - Generate killer WhatsApp "social defense scripts" so they can say no to friends without looking broke or awkward.
+  - Generate killer WhatsApp "social defense scripts".
   - OUTPUT PURE JSON ONLY. No markdown blocks, no backticks.
 
   EXACT JSON SCHEMA TO RETURN:
@@ -65,21 +75,21 @@ export async function processAlibiInput(
     "data": {
       "amount": number,
       "category": "Food" | "Travel" | "Social" | "Academic" | "Income",
-      "merchant": "string (for transaction)",
-      "item": "string (for advice)",
+      "merchant": "string",
+      "item": "string",
       "type": "expense" | "income",
       "verdict": "go_ahead" | "think_twice" | "skip",
-      "regretRiskScore": number (0 to 100),
+      "regretRiskScore": number,
       "peerPressureDetected": boolean,
-      "peerPressureNote": "string explaining peer pressure risk",
-      "cheaperAlternative": "string suggesting a budget-friendly swap",
-      "iouBorrower": "string (name of person who owes money, if iou_nudge)",
-      "aiCoachMessage": "1-2 punchy sentences in your financial manager persona.",
+      "peerPressureNote": "string",
+      "cheaperAlternative": "string",
+      "iouBorrower": "string",
+      "aiCoachMessage": "1-2 punchy sentences.",
       "socialScripts": {
-        "funny": "WhatsApp message text",
-        "honest": "WhatsApp message text",
-        "firm": "WhatsApp message text",
-        "counterPlan": "WhatsApp message text"
+        "funny": "string",
+        "honest": "string",
+        "firm": "string",
+        "counterPlan": "string"
       }
     }
   }`;
