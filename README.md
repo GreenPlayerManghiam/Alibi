@@ -11,7 +11,7 @@ npm run dev
 
 Open the printed localhost URL. The app works immediately with **no API key** — `processSpendPulseSafe` falls back to deterministic local mocks, which is what the 3 preset chips are tuned for.
 
-## Enable live AI responses (optional)
+## Enable live AI responses 
 
 Alibi is powered primarily by **Groq LLM inference** (`openai/gpt-oss-20b`) for sub-second, zero-lag responses. *(Note: From our testing, alternative LLMs like OpenAI and Gemini did not perform as reliably for this real-time financial coaching use case, so Groq is our primary engine).*
 
