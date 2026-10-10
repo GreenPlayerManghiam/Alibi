@@ -1,4 +1,4 @@
-# SpendPulse
+# Alibi
 
 An AI-powered financial coach for university students — fast text capture,
 a daily "safe-to-spend" gauge, and a Social Peer-Pressure & Regret-Risk
